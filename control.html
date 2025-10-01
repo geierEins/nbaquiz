@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Kontrolleinheit</title>
+<style>
+body {
+  font-family: sans-serif;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+}
+
+.score-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.player-controls {
+  background: #333;
+  padding: 10px 15px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+  min-width: 200px;
+}
+
+.player-controls h2 {
+  margin: 5px 0 10px 0;
+  font-size: 18px;
+}
+
+.points-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+button {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s;
+}
+button:active { transform: scale(0.95); }
+
+.add { background: #28a745; color: white; }
+.sub { background: #dc3545; color: white; }
+
+.cell-table { border-collapse: collapse; margin: 0 10px; }
+.cell-table td {
+  width: 50px;
+  height: 40px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid #333;
+}
+
+.toggle-container { margin-top: 10px; }
+
+.sound-buttons {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sound {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #fff;
+  border: none;
+}
+
+/* Soundfarben */
+.sound1 { background: #007bff; }
+.sound2 { background: #6f42c1; }
+.sound3 { background: #e83e8c; }
+.sound4 { background: #fd7e14; }
+.sound5 { background: #20c997; }
+.sound6 { background: #ffc107; color: #000; }
+
+/* Toggle Button */
+.switch { position: relative; display: inline-block; width: 60px; height: 30px; }
+.switch input { display: none; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #555;
+  transition: .4s;
+  border-radius: 30px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+input:checked + .slider { background-color: #2196F3; }
+input:checked + .slider:before { transform: translateX(30px); }
+
+/* Fragenbereich */
+#question-block {
+  margin-top: 20px;
+  padding: 15px;
+  background: #444;
+  border-radius: 12px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  white-space: pre-wrap;
+  display: none;
+  text-align: left;
+}
+</style>
+</head>
+<body>
+
+<div class="score-container">
+  <div class="player-controls">
+    <h2>Spieler links</h2>
+    <div class="points-grid" id="p1-buttons"></div>
+  </div>
+
+  <table class="cell-table" id="cell-table"></table>
+
+  <div class="player-controls">
+    <h2>Spieler rechts</h2>
+    <div class="points-grid" id="p2-buttons"></div>
+  </div>
+</div>
+
+<div class="toggle-container">
+  <label>Runde 1</label>
+  <label class="switch">
+    <input type="checkbox" id="roundToggle" onchange="toggleRound()">
+    <span class="slider"></span>
+  </label>
+  <label>Runde 2</label>
+</div>
+
+<div class="sound-buttons">
+  <button class="sound sound1" onclick="play('wrong.mp3')">wrong</button>
+  <button class="sound sound2" onclick="play('sound2.mp3')">Sound 2</button>
+  <button class="sound sound3" onclick="play('sound3.mp3')">Sound 3</button>
+  <button class="sound sound4" onclick="play('sound4.mp3')">Sound 4</button>
+  <button class="sound sound5" onclick="play('sound5.mp3')">Sound 5</button>
+  <button class="sound sound6" onclick="play('sound6.mp3')">Sound 6</button>
+</div>
+
+<div id="question-block"></div>
+
+<script src="questions.js"></script>
+<script>
+let multiplier = parseInt(localStorage.getItem("multiplier") || "1");
+const values = [200,400,600,800,1000];
+const columnColors = [
+  ["#993366","#802b52","#661f40","#4d1430","#33091f"],
+  ["#cc6600","#b35400","#994400","#803300","#662200"],
+  ["#267326","#1f5c1f","#194d19","#133d13","#0d2e0d"],
+  ["#254eda","#1f3eb5","#192f8f","#132069","#0d1340"],
+  ["#b30000","#990000","#800000","#660000","#4d0000"]
+];
+
+function buildScoreButtons() {
+  [1,2].forEach(player=>{
+    const grid=document.getElementById(`p${player}-buttons`);
+    grid.innerHTML="";
+    values.forEach(v=>{
+      const add=document.createElement("button");
+      add.className="add";
+      add.textContent=`+${v*multiplier}`;
+      add.onclick=()=>changeScore(player,v*multiplier);
+
+      const sub=document.createElement("button");
+      sub.className="sub";
+      sub.textContent=`-${v*multiplier}`;
+      sub.onclick=()=>changeScore(player,-v*multiplier);
+
+      grid.appendChild(add);
+      grid.appendChild(sub);
+    });
+  });
+}
+
+function buildCellTable(){
+  const table=document.getElementById("cell-table");
+  table.innerHTML="";
+  for(let r=0;r<5;r++){
+    const tr=document.createElement("tr");
+    for(let c=0;c<5;c++){
+      const td=document.createElement("td");
+      const key=`cell-${r}-${c}`;
+      let status=parseInt(localStorage.getItem(key)||"0");
+      let bg=columnColors[c][r];
+      let text=(r+1)*200*multiplier;
+
+      if(status===1){
+        td.style.border="3px solid yellow";
+        showQuestion(r,c);
+      }
+      else if(status===2){
+        bg=getComputedStyle(document.body).backgroundColor || "#222";
+        text="";
+      }
+      else{
+        td.style.border="1px solid #333";
+      }
+
+      td.style.background=bg;
+      td.textContent=text;
+      td.onclick=()=>toggleCell(r,c);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+function toggleCell(r,c){
+  const key=`cell-${r}-${c}`;
+  let status=parseInt(localStorage.getItem(key)||"0");
+  status=(status+1)%3;
+  localStorage.setItem(key,status);
+  buildCellTable();
+  if(status!==1){
+    document.getElementById("question-block").style.display="none";
+  }
+}
+
+function showQuestion(r,c){
+  const rowChar=String.fromCharCode(65+c);
+  const rowNum=r+1;
+  const key=`${rowChar}-${rowNum}`;
+  const question=questions[key];
+  if(question){
+    const block=document.getElementById("question-block");
+    block.textContent=question;
+    block.style.display="block";
+  }
+}
+
+function changeScore(player,delta){
+  let key="score"+player;
+  let current=parseInt(localStorage.getItem(key)||0);
+  let newVal=current+delta;
+  localStorage.setItem(key,newVal);
+}
+
+function play(filename){
+  localStorage.setItem("soundTrigger",filename);
+  setTimeout(()=>localStorage.removeItem("soundTrigger"),100);
+}
+
+function toggleRound(){
+  const checked=document.getElementById("roundToggle").checked;
+  multiplier=checked?2:1;
+  localStorage.setItem("multiplier",multiplier);
+  buildScoreButtons();
+  buildCellTable();
+}
+
+function initToggleVisual(){
+  const checked=(multiplier===2);
+  document.getElementById("roundToggle").checked=checked;
+}
+
+window.onload=()=>{
+  initToggleVisual();
+  buildScoreButtons();
+  buildCellTable();
+}
+</script>
+</body>
+</html>
