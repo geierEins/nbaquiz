@@ -5,14 +5,14 @@
   <title>Anzeigeeinheit</title>
   <style>
     body { font-family: sans-serif; text-align: center; background: #222; color: #fff; }
-    table { border-collapse: collapse; margin: 30px auto; font-size: 26px; }
+    table { border-collapse: separate; border-spacing: 0; border-radius: 20px; overflow: hidden; margin: 30px auto; font-size: 48px; }
     td, th {
       border: 1px solid #333; 
       width: 200px; height: 90px; 
       text-align: center; padding: 10px;
       font-weight: bold;
     }
-    th { background: #111; color: #fff; font-size: 22px; }
+    th { background: #131313; color: #e6ea6b; font-size: 28px; }
     .scoreboard {
       display: flex;
       justify-content: center;
@@ -28,171 +28,87 @@
       text-align: center;
       transition: transform 0.2s;
     }
-    .player-box:hover {
-      transform: scale(1.05);
-    }
-    #p1-box { background: #6a0dad; } /* Spieler 1: lila */
-    #p2-box { background: #007bff; } /* Spieler 2: blau */
-    .player-name {
-      font-size: 22px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .player-score {
-      font-size: 36px;
-      font-weight: bold;
-    }
-
-    .player { font-weight: bold; }
-    #setup { margin-top: 50px; }
-    input { margin: 5px; padding: 8px; font-size: 16px; }
-    button { margin-top: 15px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    .player-box:hover { transform: scale(1.05); }
+    #p1-box { background: #512e74; }
+    #p2-box { background: #9c1f1f; }
+    .player-name { font-size: 36px; font-weight: bold; margin-bottom: 10px; }
+    .player-score { font-size: 48px; font-weight: bold; color: #FFD700; }
   </style>
 </head>
 <body>
 
-  <!-- Setup-Bereich -->
-  <div id="setup" style="display:none;">
-    <h2>Spieler & Kategorien eingeben</h2>
-    <div>
-      Spieler 1: <input id="player1" type="text" placeholder="Spieler 1"><br>
-      Spieler 2: <input id="player2" type="text" placeholder="Spieler 2"><br><br>
-      Kategorie 1: <input id="cat1" type="text" placeholder="Kategorie 1"><br>
-      Kategorie 2: <input id="cat2" type="text" placeholder="Kategorie 2"><br>
-      Kategorie 3: <input id="cat3" type="text" placeholder="Kategorie 3"><br>
-      Kategorie 4: <input id="cat4" type="text" placeholder="Kategorie 4"><br>
-      Kategorie 5: <input id="cat5" type="text" placeholder="Kategorie 5"><br>
+<div id="game">
+  <table id="quizTable"></table>
+  <div class="scoreboard">
+    <div class="player-box" id="p1-box">
+      <div class="player-name" id="p1name"></div>
+      <div class="player-score" id="score1">0</div>
     </div>
-    <button onclick="startGame()">Start</button>
-  </div>
-
-  <!-- Spiel-Bereich -->
-  <div id="game" style="display:none;">
-    <table id="quizTable"></table>
-    <div class="scoreboard">
-      <div class="player-box" id="p1-box">
-        <div class="player-name" id="p1name"></div>
-        <div class="player-score" id="score1">0</div>
-      </div>
-      <div class="player-box" id="p2-box">
-        <div class="player-name" id="p2name"></div>
-        <div class="player-score" id="score2">0</div>
-      </div>
+    <div class="player-box" id="p2-box">
+      <div class="player-name" id="p2name"></div>
+      <div class="player-score" id="score2">0</div>
     </div>
   </div>
+</div>
 
-  <script>
-    const columnColors = [
-      ["#993366","#802b52","#661f40","#4d1430","#33091f"], // Rosa/Lila
-      ["#cc6600","#b35400","#994400","#803300","#662200"], // Orange
-      ["#267326","#1f5c1f","#194d19","#133d13","#0d2e0d"], // Grün
-      ["#254eda","#1f3eb5","#192f8f","#132069","#0d1340"], // Blau
-      ["#b30000","#990000","#800000","#660000","#4d0000"], // Rot
-    ];
+<script src="questions.js"></script>
+<script>
+function getMultiplier() {
+  return parseInt(localStorage.getItem("multiplier") || "1");
+}
 
-    function startGame() {
-      const p1 = document.getElementById("player1").value || "Spieler 1";
-      const p2 = document.getElementById("player2").value || "Spieler 2";
-      const cats = [
-        document.getElementById("cat1").value || "Kategorie 1",
-        document.getElementById("cat2").value || "Kategorie 2",
-        document.getElementById("cat3").value || "Kategorie 3",
-        document.getElementById("cat4").value || "Kategorie 4",
-        document.getElementById("cat5").value || "Kategorie 5",
-      ];
-      localStorage.setItem("player1name", p1);
-      localStorage.setItem("player2name", p2);
-      localStorage.setItem("categories", JSON.stringify(cats));
-      localStorage.setItem("score1", 0);
-      localStorage.setItem("score2", 0);
+function buildTable() {
+  const multiplier = getMultiplier();
+  const table = document.getElementById("quizTable");
+  table.innerHTML = "";
 
-      document.getElementById("setup").style.display = "none";
-      document.getElementById("game").style.display = "block";
-      buildTable(cats, p1, p2);
-    }
+  const cats = Object.values(categories);
 
-    function buildTable(cats, p1, p2) {
-      const table = document.getElementById("quizTable");
-      table.innerHTML = "";
+  // Kopfzeile
+  let header = "<tr>";
+  cats.forEach(cat => header += `<th>${cat}</th>`);
+  header += "</tr>";
+  table.innerHTML += header;
 
-      // Kopfzeile
-      let header = "<tr>";
-      cats.forEach(cat => { header += `<th>${cat}</th>`; });
-      header += "</tr>";
-      table.innerHTML += header;
+  // 5 Reihen
+  const columnColors = [
+    ["#993366","#802b52","#661f40","#4d1430","#33091f"],
+    ["#cc6600","#b35400","#994400","#803300","#662200"],
+    ["#267326","#1f5c1f","#194d19","#133d13","#0d2e0d"],
+    ["#254eda","#1f3eb5","#192f8f","#132069","#0d1340"],
+    ["#b30000","#990000","#800000","#660000","#4d0000"]
+  ];
 
-      // 5 Reihen
-      for(let r=0; r<5; r++) {
-        let row = "<tr>";
-        cats.forEach((cat, cIdx) => {
-          const key = `cell-${r}-${cIdx}`;
-          const status = parseInt(localStorage.getItem(key) || "0");
-          let bg = columnColors[cIdx][r];
-          let val = (r+1)*200 * (parseInt(localStorage.getItem("multiplier")||1));
+  for(let r=0; r<5; r++){
+    let row = "<tr>";
+    cats.forEach((cat,cIdx)=>{
+      const key = `${String.fromCharCode(65+cIdx)}-${r+1}`;
+      const status = parseInt(localStorage.getItem(`cell-${r}-${cIdx}`)||"0");
+      let bg = columnColors[cIdx][r];
+      let val = (r+1)*200*multiplier;
 
-          if(status === 1){ // aktiv
-            row += `<td style="background:${bg}; border:3px solid yellow; color:white;">${val}</td>`;
-          } else if(status === 2){ // inaktiv
-            row += `<td style="background:#222; color:#222;">.</td>`;
-          } else { // default
-            row += `<td style="background:${bg}; color:white;">${val}</td>`;
-          }
-        });
-        row += "</tr>";
-        table.innerHTML += row;
-      }
-
-      document.getElementById("p1name").textContent = p1;
-      document.getElementById("p2name").textContent = p2;
-      document.getElementById("score1").textContent = localStorage.getItem("score1") || 0;
-      document.getElementById("score2").textContent = localStorage.getItem("score2") || 0;
-    }
-
-    window.addEventListener("storage", (e) => {
-      if (e.key === "score1") document.getElementById("score1").textContent = e.newValue;
-      if (e.key === "score2") document.getElementById("score2").textContent = e.newValue;
-      if (e.key === "soundTrigger") playSound(e.newValue);
-      if (e.key.startsWith("cell-") || e.key === "multiplier") {
-        const cats = JSON.parse(localStorage.getItem("categories"));
-        const p1 = localStorage.getItem("player1name");
-        const p2 = localStorage.getItem("player2name");
-        buildTable(cats, p1, p2);
-      }
+      if(status===1) row += `<td style="background:${bg}; border:3px solid yellow; color:white;">${val}</td>`;
+      else if(status===2) row += `<td style="background:#222; color:#222;">.</td>`;
+      else row += `<td style="background:${bg}; color:white;">${val}</td>`;
     });
+    row += "</tr>";
+    table.innerHTML += row;
+  }
 
-    function playSound(name) {
-      if (!name) return;
-      const audio = new Audio(name);
-      audio.play();
-    }
+  document.getElementById("p1name").textContent = localStorage.getItem("player1name") || "Spieler 1";
+  document.getElementById("p2name").textContent = localStorage.getItem("player2name") || "Spieler 2";
+  document.getElementById("score1").textContent = localStorage.getItem("score1") || 0;
+  document.getElementById("score2").textContent = localStorage.getItem("score2") || 0;
+}
 
-    window.onload = () => {
-      const cats = localStorage.getItem("categories");
-      const p1 = localStorage.getItem("player1name");
-      const p2 = localStorage.getItem("player2name");
+// Reagiere auf Storage-Events
+window.addEventListener("storage", e=>{
+  if(e.key==="score1") document.getElementById("score1").textContent = e.newValue;
+  if(e.key==="score2") document.getElementById("score2").textContent = e.newValue;
+  if(e.key.startsWith("cell-") || e.key==="multiplier") buildTable();
+});
 
-      if (cats && p1 && p2) {
-        const reset = confirm("Wirklich Spiel resetten?");
-        if (reset) {
-          localStorage.removeItem("player1name");
-          localStorage.removeItem("player2name");
-          localStorage.removeItem("categories");
-          localStorage.removeItem("score1");
-          localStorage.removeItem("score2");
-          for(let r=0;r<5;r++){
-            for(let c=0;c<5;c++){
-              localStorage.removeItem(`cell-${r}-${c}`);
-            }
-          }
-          document.getElementById("setup").style.display = "block";
-        } else {
-          document.getElementById("game").style.display = "block";
-          buildTable(JSON.parse(cats), p1, p2);
-        }
-      } else {
-        document.getElementById("setup").style.display = "block";
-      }
-    }
-  </script>
+window.onload = buildTable;
+</script>
 </body>
 </html>

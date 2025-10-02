@@ -64,7 +64,20 @@ button:active { transform: scale(0.95); }
   padding: 0;
 }
 
-.toggle-container { margin-top: 10px; }
+.toggle-container {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.toggle-container label:first-child,
+.toggle-container label:last-child {
+  display: flex;
+  align-items: center;  /* Labels vertikal mittig */
+  font-size: 16px;      /* optional, etwas größere Schrift */
+}
 
 .sound-buttons {
   margin-top: 15px;
@@ -83,15 +96,14 @@ button:active { transform: scale(0.95); }
   border: none;
 }
 
-/* Soundfarben */
 .sound1 { background: #007bff; }
 .sound2 { background: #6f42c1; }
 .sound3 { background: #e83e8c; }
 .sound4 { background: #fd7e14; }
-.sound5 { background: #20c997; }
-.sound6 { background: #ffc107; color: #000; }
+.sound5 { background: #53868B; }
+.sound6 { background: #28a745; }
+.sound7 { background: #dc3545; }
 
-/* Toggle Button */
 .switch { position: relative; display: inline-block; width: 60px; height: 30px; }
 .switch input { display: none; }
 .slider {
@@ -116,7 +128,6 @@ button:active { transform: scale(0.95); }
 input:checked + .slider { background-color: #2196F3; }
 input:checked + .slider:before { transform: translateX(30px); }
 
-/* Fragenbereich */
 #question-block {
   margin-top: 20px;
   padding: 15px;
@@ -157,12 +168,13 @@ input:checked + .slider:before { transform: translateX(30px); }
 </div>
 
 <div class="sound-buttons">
-  <button class="sound sound1" onclick="play('wrong1.mp3')">falsche Antwort</button>
-  <button class="sound sound2" onclick="play('correct.mp3')">richtige Antwort</button>
-  <button class="sound sound3" onclick="play('antwort-timer.mp3')">Antwort Timer</button>
-  <button class="sound sound4" onclick="play('applause.mp3')">Applaus</button>
-  <button class="sound sound5" onclick="play('round1.mp3')">Round 1</button>
-  <button class="sound sound6" onclick="play('round2.mp3')">Round 2</button>
+  <button class="sound sound1" onclick="play('quiz-intro.mp3')">Quiz Intro</button>
+  <button class="sound sound2" onclick="play('applause.mp3')">Applaus</button>
+  <button class="sound sound3" onclick="play('round1.mp3')">Round 1</button>
+  <button class="sound sound4" onclick="play('round2.mp3')">Round 2</button>
+  <button class="sound sound5" onclick="play('antwort-timer.mp3')">Antwort Timer</button>
+  <button class="sound sound6" onclick="play('correct.mp3')">richtige Antwort</button>
+  <button class="sound sound7" onclick="play('wrong1.mp3')">falsche Antwort</button>
 </div>
 
 <div id="question-block"></div>
@@ -179,6 +191,11 @@ const columnColors = [
   ["#b30000","#990000","#800000","#660000","#4d0000"]
 ];
 
+function play(filename){
+  const audio = new Audio(filename);
+  audio.play().catch(err => console.log("Audio konnte nicht gestartet werden:", err));
+}
+
 function buildScoreButtons() {
   [1,2].forEach(player=>{
     const grid=document.getElementById(`p${player}-buttons`);
@@ -187,12 +204,18 @@ function buildScoreButtons() {
       const add=document.createElement("button");
       add.className="add";
       add.textContent=`+${v*multiplier}`;
-      add.onclick=()=>changeScore(player,v*multiplier);
+      add.onclick=()=>{
+        changeScore(player,v*multiplier);
+        play('pluspunkte.mp3'); // Sound beim Addieren
+      };
 
       const sub=document.createElement("button");
       sub.className="sub";
       sub.textContent=`-${v*multiplier}`;
-      sub.onclick=()=>changeScore(player,-v*multiplier);
+      sub.onclick=()=>{
+        changeScore(player,-v*multiplier);
+        play('minuspunkte.mp3'); // Sound beim Subtrahieren
+      };
 
       grid.appendChild(add);
       grid.appendChild(sub);
@@ -204,13 +227,12 @@ function buildCellTable() {
   const table = document.getElementById("cell-table");
   table.innerHTML = "";
 
-  const categories = JSON.parse(localStorage.getItem("categories") || "[]");
+  const cats = ["A","B","C","D","E"].map(letter => categories[letter]);
 
-  // Tabellenkopf
-  if (categories.length > 0) {
+  if (cats.length > 0) {
     const thead = document.createElement("thead");
     const trHead = document.createElement("tr");
-    for (let c = 0; c < 5; c++) {
+    for (let c = 0; c < cats.length; c++) {
       const th = document.createElement("th");
       th.style.width = "50px";
       th.style.height = "120px";
@@ -221,7 +243,7 @@ function buildCellTable() {
       th.style.border = "1px solid #333";
 
       const div = document.createElement("div");
-      div.textContent = categories[c] || "";
+      div.textContent = cats[c] || "";
       div.style.position = "absolute";
       div.style.bottom = "50%";
       div.style.left = "50%";
@@ -239,7 +261,6 @@ function buildCellTable() {
     table.appendChild(thead);
   }
 
-  // Tabellenkörper
   const tbody = document.createElement("tbody");
   for (let r = 0; r < 5; r++) {
     const tr = document.createElement("tr");
@@ -300,14 +321,6 @@ function changeScore(player,delta){
   localStorage.setItem(key,newVal);
 }
 
-// Direktes Abspielen im selben Tab
-function play(filename){
-  const audio = new Audio(filename);
-  audio.play().catch(err => {
-    console.log("Audio konnte nicht gestartet werden:", err);
-  });
-}
-
 function toggleRound(){
   const checked=document.getElementById("roundToggle").checked;
   multiplier=checked?2:1;
@@ -335,7 +348,6 @@ window.onload=()=>{
   buildCellTable();
 }
 
-// Falls sich Namen im Storage nachträglich ändern
 window.addEventListener("storage", e => {
   if (e.key === "player1name" || e.key === "player2name") {
     updatePlayerLabels();
