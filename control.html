@@ -54,13 +54,14 @@ button:active { transform: scale(0.95); }
 .sub { background: #dc3545; color: white; }
 
 .cell-table { border-collapse: collapse; margin: 0 10px; }
-.cell-table td {
+.cell-table td, .cell-table th {
   width: 50px;
   height: 40px;
   text-align: center;
   font-weight: bold;
   cursor: pointer;
   border: 1px solid #333;
+  padding: 0;
 }
 
 .toggle-container { margin-top: 10px; }
@@ -134,14 +135,14 @@ input:checked + .slider:before { transform: translateX(30px); }
 
 <div class="score-container">
   <div class="player-controls">
-    <h2>Spieler links</h2>
+    <h2 id="p1-label">Spieler links</h2>
     <div class="points-grid" id="p1-buttons"></div>
   </div>
 
   <table class="cell-table" id="cell-table"></table>
 
   <div class="player-controls">
-    <h2>Spieler rechts</h2>
+    <h2 id="p2-label">Spieler rechts</h2>
     <div class="points-grid" id="p2-buttons"></div>
   </div>
 </div>
@@ -156,12 +157,12 @@ input:checked + .slider:before { transform: translateX(30px); }
 </div>
 
 <div class="sound-buttons">
-  <button class="sound sound1" onclick="play('wrong.mp3')">wrong</button>
-  <button class="sound sound2" onclick="play('sound2.mp3')">Sound 2</button>
-  <button class="sound sound3" onclick="play('sound3.mp3')">Sound 3</button>
-  <button class="sound sound4" onclick="play('sound4.mp3')">Sound 4</button>
-  <button class="sound sound5" onclick="play('sound5.mp3')">Sound 5</button>
-  <button class="sound sound6" onclick="play('sound6.mp3')">Sound 6</button>
+  <button class="sound sound1" onclick="play('wrong1.mp3')">falsche Antwort</button>
+  <button class="sound sound2" onclick="play('correct.mp3')">richtige Antwort</button>
+  <button class="sound sound3" onclick="play('antwort-timer.mp3')">Antwort Timer</button>
+  <button class="sound sound4" onclick="play('applause.mp3')">Applaus</button>
+  <button class="sound sound5" onclick="play('round1.mp3')">Round 1</button>
+  <button class="sound sound6" onclick="play('round2.mp3')">Round 2</button>
 </div>
 
 <div id="question-block"></div>
@@ -199,37 +200,74 @@ function buildScoreButtons() {
   });
 }
 
-function buildCellTable(){
-  const table=document.getElementById("cell-table");
-  table.innerHTML="";
-  for(let r=0;r<5;r++){
-    const tr=document.createElement("tr");
-    for(let c=0;c<5;c++){
-      const td=document.createElement("td");
-      const key=`cell-${r}-${c}`;
-      let status=parseInt(localStorage.getItem(key)||"0");
-      let bg=columnColors[c][r];
-      let text=(r+1)*200*multiplier;
+function buildCellTable() {
+  const table = document.getElementById("cell-table");
+  table.innerHTML = "";
 
-      if(status===1){
-        td.style.border="3px solid yellow";
-        showQuestion(r,c);
-      }
-      else if(status===2){
-        bg=getComputedStyle(document.body).backgroundColor || "#222";
-        text="";
-      }
-      else{
-        td.style.border="1px solid #333";
+  const categories = JSON.parse(localStorage.getItem("categories") || "[]");
+
+  // Tabellenkopf
+  if (categories.length > 0) {
+    const thead = document.createElement("thead");
+    const trHead = document.createElement("tr");
+    for (let c = 0; c < 5; c++) {
+      const th = document.createElement("th");
+      th.style.width = "50px";
+      th.style.height = "120px";
+      th.style.position = "relative";
+      th.style.padding = "0";
+      th.style.background = "#111";
+      th.style.color = "#fff";
+      th.style.border = "1px solid #333";
+
+      const div = document.createElement("div");
+      div.textContent = categories[c] || "";
+      div.style.position = "absolute";
+      div.style.bottom = "50%";
+      div.style.left = "50%";
+      div.style.transform = "translate(-50%, 50%) rotate(-90deg)";
+      div.style.transformOrigin = "center center";
+      div.style.fontSize = "12px";
+      div.style.textAlign = "center";
+      div.style.width = "120px";
+      div.style.overflow = "hidden";
+
+      th.appendChild(div);
+      trHead.appendChild(th);
+    }
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+  }
+
+  // Tabellenkörper
+  const tbody = document.createElement("tbody");
+  for (let r = 0; r < 5; r++) {
+    const tr = document.createElement("tr");
+    for (let c = 0; c < 5; c++) {
+      const td = document.createElement("td");
+      const key = `cell-${r}-${c}`;
+      let status = parseInt(localStorage.getItem(key) || "0");
+      let bg = columnColors[c][r];
+      let text = (r + 1) * 200 * multiplier;
+
+      if (status === 1) {
+        td.style.border = "3px solid yellow";
+        showQuestion(r, c);
+      } else if (status === 2) {
+        bg = getComputedStyle(document.body).backgroundColor || "#222";
+        text = "";
+      } else {
+        td.style.border = "1px solid #333";
       }
 
-      td.style.background=bg;
-      td.textContent=text;
-      td.onclick=()=>toggleCell(r,c);
+      td.style.background = bg;
+      td.textContent = text;
+      td.onclick = () => toggleCell(r, c);
       tr.appendChild(td);
     }
-    table.appendChild(tr);
+    tbody.appendChild(tr);
   }
+  table.appendChild(tbody);
 }
 
 function toggleCell(r,c){
@@ -262,9 +300,12 @@ function changeScore(player,delta){
   localStorage.setItem(key,newVal);
 }
 
+// Direktes Abspielen im selben Tab
 function play(filename){
-  localStorage.setItem("soundTrigger",filename);
-  setTimeout(()=>localStorage.removeItem("soundTrigger"),100);
+  const audio = new Audio(filename);
+  audio.play().catch(err => {
+    console.log("Audio konnte nicht gestartet werden:", err);
+  });
 }
 
 function toggleRound(){
@@ -280,11 +321,26 @@ function initToggleVisual(){
   document.getElementById("roundToggle").checked=checked;
 }
 
+function updatePlayerLabels() {
+  const p1 = localStorage.getItem("player1name") || "Spieler links";
+  const p2 = localStorage.getItem("player2name") || "Spieler rechts";
+  document.getElementById("p1-label").textContent = p1;
+  document.getElementById("p2-label").textContent = p2;
+}
+
 window.onload=()=>{
   initToggleVisual();
+  updatePlayerLabels();
   buildScoreButtons();
   buildCellTable();
 }
+
+// Falls sich Namen im Storage nachträglich ändern
+window.addEventListener("storage", e => {
+  if (e.key === "player1name" || e.key === "player2name") {
+    updatePlayerLabels();
+  }
+});
 </script>
 </body>
 </html>
