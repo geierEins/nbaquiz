@@ -75,8 +75,8 @@ button:active { transform: scale(0.95); }
 .toggle-container label:first-child,
 .toggle-container label:last-child {
   display: flex;
-  align-items: center;  /* Labels vertikal mittig */
-  font-size: 16px;      /* optional, etwas größere Schrift */
+  align-items: center;
+  font-size: 16px;
 }
 
 .sound-buttons {
@@ -140,6 +140,21 @@ input:checked + .slider:before { transform: translateX(30px); }
   display: none;
   text-align: left;
 }
+
+#name-button-container {
+  margin-top: 15px;
+}
+
+#name-button {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  background: #28a745;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -174,12 +189,16 @@ input:checked + .slider:before { transform: translateX(30px); }
   <button class="sound sound4" onclick="play('round2.mp3')">Round 2</button>
   <button class="sound sound5" onclick="play('antwort-timer.mp3')">Antwort Timer</button>
   <button class="sound sound6" onclick="play('correct.mp3')">richtige Antwort</button>
-  <button class="sound sound7" onclick="play('wrong1.mp3')">falsche Antwort</button>
+  <button class="sound sound7" onclick="play('wrong.mp3')">falsche Antwort</button>
+</div>
+
+<div id="name-button-container">
+  <button id="name-button" onclick="promptNames()">Spielernamen ändern</button>
 </div>
 
 <div id="question-block"></div>
 
-<script src="questions.js"></script>
+<script src="questions_rap.js"></script>
 <script>
 let multiplier = parseInt(localStorage.getItem("multiplier") || "1");
 const values = [200,400,600,800,1000];
@@ -206,7 +225,7 @@ function buildScoreButtons() {
       add.textContent=`+${v*multiplier}`;
       add.onclick=()=>{
         changeScore(player,v*multiplier);
-        play('pluspunkte.mp3'); // Sound beim Addieren
+        play('pluspunkte.mp3');
       };
 
       const sub=document.createElement("button");
@@ -214,7 +233,7 @@ function buildScoreButtons() {
       sub.textContent=`-${v*multiplier}`;
       sub.onclick=()=>{
         changeScore(player,-v*multiplier);
-        play('minuspunkte.mp3'); // Sound beim Subtrahieren
+        play('minuspunkte.mp3');
       };
 
       grid.appendChild(add);
@@ -277,6 +296,7 @@ function buildCellTable() {
       } else if (status === 2) {
         bg = getComputedStyle(document.body).backgroundColor || "#222";
         text = "";
+        td.style.border = "1px solid #333";
       } else {
         td.style.border = "1px solid #333";
       }
@@ -341,6 +361,15 @@ function updatePlayerLabels() {
   document.getElementById("p2-label").textContent = p2;
 }
 
+// NEU: Spielernamen ändern
+function promptNames(){
+  const p1 = prompt("Spieler 1 Name:", localStorage.getItem("player1name") || "");
+  const p2 = prompt("Spieler 2 Name:", localStorage.getItem("player2name") || "");
+  if(p1!==null) localStorage.setItem("player1name", p1);
+  if(p2!==null) localStorage.setItem("player2name", p2);
+  updatePlayerLabels();
+}
+
 window.onload=()=>{
   initToggleVisual();
   updatePlayerLabels();
@@ -349,9 +378,7 @@ window.onload=()=>{
 }
 
 window.addEventListener("storage", e => {
-  if (e.key === "player1name" || e.key === "player2name") {
-    updatePlayerLabels();
-  }
+  if (e.key === "player1name" || e.key === "player2name") updatePlayerLabels();
 });
 </script>
 </body>
